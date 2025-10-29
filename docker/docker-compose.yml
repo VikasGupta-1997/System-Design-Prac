@@ -1,0 +1,90 @@
+# backend/docker/docker-compose.yml
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: instagram_postgres
+    environment:
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: instagram
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U devuser" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:6
+    container_name: instagram_mongo
+    healthcheck:
+      # use mongo client 'mongo' to ping; tool exists in the image
+      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+
+  redis:
+    image: redis:7
+    container_name: instagram_redis
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: instagram_backend
+    env_file:
+      - ../.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # mount your source for hot reload and .env into the container:
+    volumes:
+      - ../src:/app/src # mount source code
+      - ../package.json:/app/package.json
+      - ../package-lock.json:/app/package-lock.json
+      - ../.env:/app/.env
+      - /app/node_modules # keep container's node_modules (anonymous volume)
+    command: npm run dev
+    restart: on-failure
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: instagram_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
+  mongodata:
+  redisdata:

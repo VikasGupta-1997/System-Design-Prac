@@ -1,0 +1,6 @@
+| Task                          | Command                                    |
+| ----------------------------- | ------------------------------------------ |
+| Stop everything               | `docker compose down`                      |
+| Rebuild after adding packages | `docker compose up --build -d`             |
+| View logs                     | `docker compose logs -f backend` |
+| Restart single container      | `docker compose restart backend` |
