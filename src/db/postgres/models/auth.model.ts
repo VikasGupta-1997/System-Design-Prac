@@ -1,11 +1,12 @@
 import { DataTypes, Model, Optional } from "sequelize";
-import { sequelize } from "../../db/postgres";
+import { sequelize } from "../connection";
 
 interface UserAttributes {
   id: string;
   username: string;
   email: string;
   password_hash: string;
+  role: string;
 }
 
 interface UserCreationAttributes extends Optional<UserAttributes, "id"> {}
@@ -16,6 +17,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes>
   declare username: string;
   declare email: string;
   declare password_hash: string;
+  declare role: string;
 }
 
 User.init(
@@ -37,7 +39,12 @@ User.init(
     },
     password_hash: {
       type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    role: {
+      type: DataTypes.ENUM("user", "admin", "moderator"),
       allowNull: false,
+      defaultValue: "user",
     },
   },
   {

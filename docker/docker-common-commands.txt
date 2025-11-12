@@ -4,3 +4,20 @@
 | Rebuild after adding packages | `docker compose up --build -d`             |
 | View logs                     | `docker compose logs -f backend` |
 | Restart single container      | `docker compose restart backend` |
+
+Log Checking -:
+docker logs instagram_backend
+
+
+Create Migration -:
+//From Docker
+docker compose exec backend npx sequelize-cli migration:generate --name migration-name
+
+//From Local
+npx sequelize-cli migration:generate --name migration-name
+
+> if working in ts env then rename the newly created migration file from .js to .cjs
+
+Migration running for Postgre -:
+docker compose exec backend npx sequelize-cli db:migrate
+

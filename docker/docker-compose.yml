@@ -68,8 +68,12 @@ services:
       - ../package.json:/app/package.json
       - ../package-lock.json:/app/package-lock.json
       - ../.env:/app/.env
+      - ../.sequelizerc:/app/.sequelizerc
       - /app/node_modules # keep container's node_modules (anonymous volume)
-    command: npm run dev
+    command: >
+      sh -c "
+        npm run dev
+      "
     restart: on-failure
 
   pgadmin:

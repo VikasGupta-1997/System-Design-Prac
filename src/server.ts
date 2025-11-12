@@ -1,99 +1,138 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { testPostgres, sequelize } from './db/postgres';
+import helmet from 'helmet';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { csrfSeed } from './security/csrf';
+import { sessionLoader } from './security/session';
+import { testPostgres, sequelize } from './db/postgres/connection';
 import { connectMongo } from './db/mongo';
 import config from './config';
 import { testRedis } from './db/redis';
 import authRoutes from './modules/auth/auth.routes';
-import logger from './utils/logger';
 import { errorHandler } from './middlewares/error.middleware';
 import { requestIdMiddleware } from './middlewares/request-id.middleware';
 import { loggingMiddleware } from './middlewares/logging.middleware';
-// import feedRoutes from './modules/feed/feed.routes';
-
-const version = 'v1'
 
 dotenv.config();
 const app = express();
+const version = 'v1';
+
+// Middlewares
+app.use(helmet());
 app.use(requestIdMiddleware);
 app.use(express.json());
+app.use(cors({ origin: config.clientBaseUrl, credentials: true }));
+app.use(cookieParser());
 app.use(loggingMiddleware);
-// app.use((req, res, next) => {
-//     const start = Date.now();
 
-//     // When response is finished, log status & info
-//     res.on('finish', () => {
-//         const duration = Date.now() - start;
-
-//         logger.info({
-//             method: req.method,
-//             url: req.originalUrl,
-//             status: res.statusCode,
-//             duration: `${duration}ms`,
-//         }, 'request_completed');
-//     });
-
-//     next();
-// });
-
+// CSRF + Session
+app.use(csrfSeed);
+app.use(sessionLoader);
 
 // Routes
 app.use(`/api/${version}/auth`, authRoutes);
-// app.use('/api/feed', feedRoutes);
 
-// error handler (last)
+app.get('/healthz', (_req, res) => res.json({ ok: true }));
+
+// Error handler
 app.use(errorHandler);
 
-// Start server
-const PORT = config.port;;
+const PORT = config.port;
 
+// small helper
 const wait = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+
+// ✅ Robust startup flow
 const startServer = async () => {
     try {
-        // Retry loop for Postgres
-        let attempts = 0;
-        while (attempts < 10) {
-            try {
-                await testPostgres();
-                await sequelize.sync({ alter: true });
-                break;
-            } catch (err) {
-                attempts++;
-                console.log(`Postgres not ready, attempt ${attempts}/10. Retrying in 3s...`);
-                await wait(3000);
+        console.log("Starting backend…");
+
+        // ----------------------------
+        // ✅ Postgres — retry ONLY if first attempt fails
+        // ----------------------------
+        try {
+            await testPostgres();
+            console.log("Postgres connected on first attempt.");
+        } catch (err) {
+            console.log("Postgres first attempt failed. Retrying…");
+
+            let attempts = 1;
+            const maxAttempts = 10;
+
+            while (attempts <= maxAttempts) {
+                try {
+                    await wait(3000);
+                    await testPostgres();
+                    console.log(`Postgres connected on retry ${attempts}.`);
+                    break;
+                } catch (e) {
+                    attempts++;
+                    console.log(`Postgres retry ${attempts}/${maxAttempts} failed…`);
+                }
             }
         }
 
-        // Connect Mongo with retry
-        attempts = 0;
-        while (attempts < 10) {
-            try {
-                await connectMongo();
-                break;
-            } catch (err) {
-                attempts++;
-                console.log(`Mongo not ready, attempt ${attempts}/10. Retrying in 3s...`);
-                await wait(3000);
+        // ----------------------------
+        // ✅ Mongo — same pattern
+        // ----------------------------
+        try {
+            await connectMongo();
+            console.log("Mongo connected on first attempt.");
+        } catch (err) {
+            console.log("Mongo first attempt failed. Retrying…");
+
+            let attempts = 1;
+            const maxAttempts = 10;
+
+            while (attempts <= maxAttempts) {
+                try {
+                    await wait(3000);
+                    await connectMongo();
+                    console.log(`Mongo connected on retry ${attempts}.`);
+                    break;
+                } catch (e) {
+                    attempts++;
+                    console.log(`Mongo retry ${attempts}/${maxAttempts} failed…`);
+                }
             }
         }
 
-        // Redis test (simple)
-        attempts = 0;
-        while (attempts < 10) {
-            try {
-                await testRedis();
-                break;
-            } catch (err) {
-                attempts++;
-                console.log(`Redis not ready, attempt ${attempts}/10. Retrying in 3s...`);
-                await wait(3000);
+        // ----------------------------
+        // ✅ Redis — same pattern
+        // ----------------------------
+        try {
+            await testRedis();
+            console.log("Redis connected on first attempt.");
+        } catch (err) {
+            console.log("Redis first attempt failed. Retrying…");
+
+            let attempts = 1;
+            const maxAttempts = 10;
+
+            while (attempts <= maxAttempts) {
+                try {
+                    await wait(3000);
+                    await testRedis();
+                    console.log(`Redis connected on retry ${attempts}.`);
+                    break;
+                } catch (e) {
+                    attempts++;
+                    console.log(`Redis retry ${attempts}/${maxAttempts} failed…`);
+                }
             }
         }
 
-        app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+        // ----------------------------
+        // ✅ Start HTTP server
+        // ----------------------------
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+
     } catch (err) {
-        console.error('Startup error:', err);
+        console.error("Fatal startup error:", err);
         process.exit(1);
     }
 };

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { registerUser, loginUser, logoutUser } from './auth.service';
+import { destroySession } from '../../security/session';
 
 
 export const register = async (req: Request, res: Response) => {
@@ -16,8 +17,8 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
-        const { token } = await loginUser(email, password);
-        res.json({ token });
+        const data = await loginUser(email, password, res);
+        res.json(data);
     } catch (err: any) {
         res.status(401).json({ error: err.message });
     }
@@ -26,8 +27,14 @@ export const login = async (req: Request, res: Response) => {
 
 export const logout = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).userId;
-        await logoutUser(userId);
+        console.log("REQQQ", req.user)
+        // const userId = (req as any).user.id;
+        // console.log("userIduserId", userId)
+        const session = (req as any).session;
+        if (!session?.userId) return res.status(401).json({ message: 'Unauthorized' });
+
+        // await logoutUser(userId);
+        await destroySession(req, res);
         res.json({ ok: true });
     } catch (err: any) {
         res.status(400).json({ error: err.message });
