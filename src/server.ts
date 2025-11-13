@@ -32,6 +32,7 @@ app.use(sessionLoader);
 
 // Routes
 app.use(`/api/${version}/auth`, authRoutes);
+
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
 // Error handler
