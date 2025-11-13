@@ -31,6 +31,7 @@ export default {
     // Sessions & CSRF
     sessionCookieName: process.env.SESSION_COOKIE_NAME || 'sid',
     sessionTtlSec: Number(process.env.SESSION_TTL_SEC || 60 * 60 * 24 * 7), // 7d
+    // sessionTtlSec: Number(process.env.SESSION_TTL_SEC || 120), // 7d
     cookieDomain: process.env.COOKIE_DOMAIN || undefined,
     csrfCookieName: process.env.CSRF_COOKIE_NAME || 'csrf',
     clientBaseUrl: process.env.CLIENT_BASE_URL || ""

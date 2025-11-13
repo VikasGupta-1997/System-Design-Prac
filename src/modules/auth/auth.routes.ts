@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { register, login, logout } from './auth.controller';
-import { authMiddleware } from '../../middlewares/auth.middleware';
+// import { authMiddleware } from '../../middlewares/auth.middleware';
 import { validateBody } from '../../middlewares/validate.middleware';
 import { registerSchema, loginSchema } from './auth.validation';
 import { asyncWrapper } from '../../middlewares/asyncWrapper';
 
-import { requireCsrf } from '../../security/csrf';
+// import { requireCsrf } from '../../security/csrf';
 import type { AuthedRequest } from '../../security/session';
-import { createSession, destroySession, sessionLoader } from '../../security/session';
-import { verifyPassword, hashPassword } from '../../security/password';
+import { sessionLoader } from '../../security/session';
+// import { verifyPassword, hashPassword } from '../../security/password';
 import { startOAuth, finishOAuth } from './oauth';
 import { Request, Response } from 'express';
 

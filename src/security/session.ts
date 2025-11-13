@@ -49,7 +49,6 @@ export async function destroySession(req: Request, res: Response) {
 // Middleware to load session into req
 export async function sessionLoader(req: Request, _res: Response, next: NextFunction) {
   (req as any).session = await getSession(req);
-  console.log("REDDD", req.session)
   next();
 }
 
