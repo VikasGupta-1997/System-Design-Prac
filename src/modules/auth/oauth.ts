@@ -31,13 +31,19 @@ function serverOrigin(req: Request) {
 function providerConfig(p: Provider) {
     if (p === 'google') {
         return {
-            authz: GOOGLE.authz, token: GOOGLE.token, scope: GOOGLE.scope,
-            clientId: config.googleClientId, clientSecret: config.googleClientSecret,
+            authz: GOOGLE.authz,
+            token: GOOGLE.token,
+            scope: GOOGLE.scope,
+            clientId: config.googleClientId,
+            clientSecret: config.googleClientSecret,
         };
     }
     return {
-        authz: GITHUB.authz, token: GITHUB.token, scope: GITHUB.scope,
-        clientId: config.githubClientId, clientSecret: config.githubClientSecret,
+        authz: GITHUB.authz,
+        token: GITHUB.token, 
+        scope: GITHUB.scope,
+        clientId: config.githubClientId, 
+        clientSecret: config.githubClientSecret,
     };
 }
 

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { registerUser, loginUser, logoutUser } from './auth.service';
-import { destroySession } from '../../security/session';
+import { AuthedRequest, createSession, destroySession } from '../../security/session';
+import { redisClient } from '../../db/redis';
 
 
 export const register = async (req: Request, res: Response) => {
@@ -40,3 +41,26 @@ export const logout = async (req: Request, res: Response) => {
         res.status(400).json({ error: err.message });
     }
 };
+
+// Session check
+export async function getMe(req: Request, res: Response) {
+    const authedReq = req as AuthedRequest;
+    if (!authedReq.session?.userId) return res.status(401).json({ message: 'Unauthenticated' });
+    res.json({ userId: authedReq.session.userId });
+};
+
+export async function refreshSession(req: Request, res: Response) {
+    try {
+        const rid = req.cookies["refresh_token"];
+        if (!rid) return res.status(401).json({ message: "No refresh token" });
+        const dataRaw = await redisClient.get(`refresh:${rid}`);
+        if (!dataRaw) return res.status(401).json({ message: "Invalid refresh token" });
+        const data = JSON.parse(dataRaw);
+        console.log("data", data)
+        // issue new short-lived session
+        await createSession(res, { userId: data.userId });
+        res.json({ ok: true, message: "Session refreshed" });
+    } catch (error) {
+        res.status(401).json({ message: "Session refresh failed" });
+    }
+}
