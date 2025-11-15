@@ -28,7 +28,6 @@ export const login = async (req: Request, res: Response) => {
 
 export const logout = async (req: Request, res: Response) => {
     try {
-        console.log("REQQQ", req.user)
         // const userId = (req as any).user.id;
         // console.log("userIduserId", userId)
         const session = (req as any).session;
