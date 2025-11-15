@@ -31,13 +31,19 @@ function serverOrigin(req: Request) {
 function providerConfig(p: Provider) {
     if (p === 'google') {
         return {
-            authz: GOOGLE.authz, token: GOOGLE.token, scope: GOOGLE.scope,
-            clientId: config.googleClientId, clientSecret: config.googleClientSecret,
+            authz: GOOGLE.authz,
+            token: GOOGLE.token,
+            scope: GOOGLE.scope,
+            clientId: config.googleClientId,
+            clientSecret: config.googleClientSecret,
         };
     }
     return {
-        authz: GITHUB.authz, token: GITHUB.token, scope: GITHUB.scope,
-        clientId: config.githubClientId, clientSecret: config.githubClientSecret,
+        authz: GITHUB.authz,
+        token: GITHUB.token, 
+        scope: GITHUB.scope,
+        clientId: config.githubClientId, 
+        clientSecret: config.githubClientSecret,
     };
 }
 
@@ -67,15 +73,6 @@ export async function startOAuth(req: Request, res: Response) {
 
     const redirectUri = `${serverOrigin(req)}/api/v1/auth/oauth/${provider}/callback`;
 
-    // 🧠 DEBUG LOGS
-    console.log('=== [OAuth DEBUG] Starting OAuth Flow ===');
-    console.log('Provider:', provider);
-    console.log('Client ID:', clientId);
-    console.log('Server Origin:', serverOrigin(req));
-    console.log('Redirect URI (will be sent to Google):', redirectUri);
-    console.log('Full expected redirect to Google:');
-    console.log(`  ${provider.toUpperCase()} AUTH URL: ${provider === 'google' ? 'https://accounts.google.com/o/oauth2/v2/auth' : 'https://github.com/login/oauth/authorize'}`);
-    console.log('=========================================');
     await saveOAuthState(nonce, { provider, state, codeVerifier, redirectUri });
 
     // we pass `nonce` via cookie so callback can find state in Redis
@@ -97,10 +94,6 @@ export async function startOAuth(req: Request, res: Response) {
     url.searchParams.set('code_challenge', codeChallenge);
     url.searchParams.set('code_challenge_method', 'S256');
     if (provider === 'google') url.searchParams.set('access_type', 'offline');
-
-    // 🔍 Log final redirect URL to verify parameters
-    console.log('Final Redirect to Provider:', url.toString());
-    console.log('=========================================');
 
     res.redirect(url.toString());
 }
