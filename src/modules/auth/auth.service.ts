@@ -16,7 +16,7 @@ export const registerUser = async (payload: { username: string; email: string; p
 
 
     const password_hash = await argon2.hash(password);
-    const user = await User.create({ username, email, password_hash, role: role || 'user' });
+    const user = await User.create({ username, email, password_hash, role: role || 'user', bio: "Hello World" });
     return { id: user.id, username: user.username, email: user.email };
 };
 

@@ -10,6 +10,8 @@ import { connectMongo } from './db/mongo';
 import config from './config';
 import { testRedis } from './db/redis';
 import authRoutes from './modules/auth/auth.routes';
+import oicdRoutes from './modules/auth/oidc.routes';
+import { initOidcClients } from './security/oidcv5'
 import { errorHandler } from './middlewares/error.middleware';
 import { requestIdMiddleware } from './middlewares/request-id.middleware';
 import { loggingMiddleware } from './middlewares/logging.middleware';
@@ -27,13 +29,18 @@ app.use(cors({ origin: config.clientBaseUrl, credentials: true }));
 app.use(cookieParser());
 app.use(loggingMiddleware);
 
+
 // CSRF + Session
 app.use(requireCsrf); //Protects against malicious cross-origin POSTs e.g. Validates CSRF token on state-changing requests
 app.use(csrfSeed); //Protects from cross-site request forgery e.g. Generates a CSRF token for the browser
 app.use(sessionLoader); //Handles authentication (who the user is) e.g. Loads the user’s session from Redis
 
+await initOidcClients();
+
 // Routes
 app.use(`/api/${version}/auth`, authRoutes);
+app.use(`/api/${version}/auth/oidc`, oicdRoutes);
+
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
 // Error handler
@@ -49,7 +56,6 @@ const wait = (ms: number) => new Promise(res => setTimeout(res, ms));
 const startServer = async () => {
     try {
         console.log("Starting backend…");
-
         // ----------------------------
         // ✅ Postgres — retry ONLY if first attempt fails
         // ----------------------------

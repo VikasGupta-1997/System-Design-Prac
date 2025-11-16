@@ -69,15 +69,25 @@ export async function updateBio(req: Request, res: Response) {
 export async function refreshSession(req: Request, res: Response) {
     try {
         const rid = req.cookies["refresh_token"];
-        if (!rid) return res.status(401).json({ message: "No refresh token" });
+        if (!rid) {
+            console.warn("Refresh attempt without refresh_token cookie");
+            return res.status(401).json({ message: "No refresh token" });
+        }
         const dataRaw = await redisClient.get(`refresh:${rid}`);
-        if (!dataRaw) return res.status(401).json({ message: "Invalid refresh token" });
+        if (!dataRaw) {
+            console.warn(`Refresh token not found in Redis: ${rid}`);
+            return res.status(401).json({ message: "Invalid refresh token" });
+        }
         const data = JSON.parse(dataRaw);
-        console.log("data", data)
+        if (!data.userId) {
+            console.error("Refresh token data missing userId:", data);
+            return res.status(401).json({ message: "Invalid refresh token data" });
+        }
         // issue new short-lived session
         await createSession(res, { userId: data.userId });
         res.json({ ok: true, message: "Session refreshed" });
-    } catch (error) {
+    } catch (error: any) {
+        console.error("Refresh session error:", error);
         res.status(401).json({ message: "Session refresh failed" });
     }
 }

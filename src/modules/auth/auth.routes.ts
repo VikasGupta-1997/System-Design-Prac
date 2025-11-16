@@ -53,7 +53,7 @@ router.get(
   })
 );
 
-router.post('/refresh', refreshSession);
+router.post('/refresh', asyncWrapper(refreshSession));
 router.get('/me', asyncWrapper(getMe));
 router.post('/update-bio', asyncWrapper(updateBio));
 
