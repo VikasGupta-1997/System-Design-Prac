@@ -7,6 +7,7 @@ interface UserAttributes {
   email: string;
   password_hash: string;
   role: string;
+  bio: string;
 }
 
 interface UserCreationAttributes extends Optional<UserAttributes, "id"> {}
@@ -18,6 +19,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes>
   declare email: string;
   declare password_hash: string;
   declare role: string;
+  declare bio: string;
 }
 
 User.init(
@@ -45,6 +47,11 @@ User.init(
       type: DataTypes.ENUM("user", "admin", "moderator"),
       allowNull: false,
       defaultValue: "user",
+    },
+    bio: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      defaultValue: "Hello User"
     },
   },
   {

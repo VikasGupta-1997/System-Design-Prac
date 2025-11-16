@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, logout, getMe, refreshSession } from './auth.controller';
+import { register, login, logout, getMe, refreshSession, updateBio } from './auth.controller';
 // import { authMiddleware } from '../../middlewares/auth.middleware';
 import { validateBody } from '../../middlewares/validate.middleware';
 import { registerSchema, loginSchema } from './auth.validation';
@@ -54,6 +54,7 @@ router.get(
 );
 
 router.post('/refresh', refreshSession);
-router.get('/me', sessionLoader, asyncWrapper(getMe));
+router.get('/me', asyncWrapper(getMe));
+router.post('/update-bio', asyncWrapper(updateBio));
 
 export default router;

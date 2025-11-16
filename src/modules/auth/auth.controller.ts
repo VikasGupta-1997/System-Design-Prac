@@ -45,7 +45,25 @@ export const logout = async (req: Request, res: Response) => {
 export async function getMe(req: Request, res: Response) {
     const authedReq = req as AuthedRequest;
     if (!authedReq.session?.userId) return res.status(401).json({ message: 'Unauthenticated' });
-    res.json({ userId: authedReq.session.userId });
+    res.json({ userId: authedReq.session.userId  });
+};
+
+export async function updateBio(req: Request, res: Response) {
+    const authedReq = req as AuthedRequest;
+    if (!authedReq.session?.userId) return res.status(401).json({ message: 'Unauthenticated' });
+    const { bio } = req.body;
+    if (typeof bio !== 'string') {
+        return res.status(400).json({ error: "Bio must be a string" });
+    }
+    const User = (await import('../../db/postgres/models/auth.model')).default;
+    const user = await User.findByPk(authedReq.session.userId);
+    console.log("user", user)
+    if (!user) {
+        return res.status(404).json({ error: "User not found" });
+    }
+    user.bio = bio;
+    await user.save();
+    res.json({ userId: authedReq.session.userId  });
 };
 
 export async function refreshSession(req: Request, res: Response) {
