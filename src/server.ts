@@ -16,6 +16,7 @@ import { errorHandler } from './middlewares/error.middleware';
 import { requestIdMiddleware } from './middlewares/request-id.middleware';
 import { loggingMiddleware } from './middlewares/logging.middleware';
 import { requireCsrf } from './middlewares/requireCsrf';
+import { initKeycloak } from './security/keycloak';
 
 dotenv.config();
 const app = express();
@@ -31,11 +32,12 @@ app.use(loggingMiddleware);
 
 
 // CSRF + Session
-app.use(requireCsrf); //Protects against malicious cross-origin POSTs e.g. Validates CSRF token on state-changing requests
 app.use(csrfSeed); //Protects from cross-site request forgery e.g. Generates a CSRF token for the browser
 app.use(sessionLoader); //Handles authentication (who the user is) e.g. Loads the user’s session from Redis
+app.use(requireCsrf); //Protects against malicious cross-origin POSTs e.g. Validates CSRF token on state-changing requests
 
 await initOidcClients();
+// await initKeycloak()
 
 // Routes
 app.use(`/api/${version}/auth`, authRoutes);
@@ -63,7 +65,7 @@ const startServer = async () => {
             await testPostgres();
             console.log("Postgres connected on first attempt.");
             // Sync Sequelize models with database (apply changes to schema)
-            // await sequelize.sync({ alter: true });
+            await sequelize.sync({ alter: true });
             console.log("Sequelize models are synced with the database.");
         } catch (err) {
             console.log("Postgres first attempt failed. Retrying…");

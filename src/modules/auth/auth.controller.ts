@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { registerUser, loginUser, logoutUser } from './auth.service';
+import { registerUser, loginUser, logoutUser, mobileLoginUser } from './auth.service';
 import { AuthedRequest, createSession, destroySession } from '../../security/session';
 import { redisClient } from '../../db/redis';
 
@@ -26,6 +26,21 @@ export const login = async (req: Request, res: Response) => {
 };
 
 
+export const mobileLogin = async (req: Request, res: Response) => {
+    const { email, password } = req.body;
+
+    const { accessToken, refreshToken } = await mobileLoginUser(email, password);
+
+    res.json({
+        ok: true,
+        accessToken,
+        refreshToken
+    });
+};
+
+
+
+
 export const logout = async (req: Request, res: Response) => {
     try {
         // const userId = (req as any).user.id;
@@ -49,21 +64,23 @@ export async function getMe(req: Request, res: Response) {
 };
 
 export async function updateBio(req: Request, res: Response) {
-    const authedReq = req as AuthedRequest;
-    if (!authedReq.session?.userId) return res.status(401).json({ message: 'Unauthenticated' });
+    const session = (req as any).session;
+    const jwtUserId = (req as any).jwtUserId; 
+    const userId = session?.userId || jwtUserId;
+    console.log("userId", session, jwtUserId)
     const { bio } = req.body;
     if (typeof bio !== 'string') {
         return res.status(400).json({ error: "Bio must be a string" });
     }
     const User = (await import('../../db/postgres/models/auth.model')).default;
-    const user = await User.findByPk(authedReq.session.userId);
+    const user = await User.findByPk(userId);
     console.log("user", user)
     if (!user) {
         return res.status(404).json({ error: "User not found" });
     }
     user.bio = bio;
     await user.save();
-    res.json({ userId: authedReq.session.userId  });
+    res.json({ userId: userId  });
 };
 
 export async function refreshSession(req: Request, res: Response) {

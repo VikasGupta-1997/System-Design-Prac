@@ -1,21 +1,39 @@
 import type { Request, Response, NextFunction } from "express";
 import config from "../config";
 
-export function requireCsrf(req: Request, res: Response, next: NextFunction) {
-  // Skip safe methods
-  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+export function requireCsrf(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    const sessionId = req.cookies[config.sessionCookieName];
+    const hasSessionCookie = Boolean(sessionId);
 
-  // Skip refresh route - it uses secure httpOnly refresh_token cookie
-  if (req.path === "/api/v1/auth/refresh" || req.path.endsWith("/refresh")) {
-    return next();
-  }
+    // Mobile clients use JWT → skip CSRF entirely
+    const authHeader = req.headers.authorization;
+    const isMobile = authHeader && authHeader.startsWith("Bearer ");
 
-  const cookieToken = req.cookies[config.csrfCookieName];
-  const headerToken = req.headers["x-csrf-token"];
+    // 🔥 Skip CSRF for mobile auth endpoints
+    if (req.path.startsWith("/api/v1/auth/mobile")) {
+        return next();
+    }
 
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
-    return res.status(403).json({ message: "Invalid CSRF token" });
-  }
+    if (isMobile) return next(); // 🔥 mobile bypass
 
-  next();
+    if (!hasSessionCookie) {
+        // Web user not logged in → nothing to protect
+        return next();
+    }
+
+    // CSRF applies ONLY to state-changing requests
+    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+        return next();
+    }
+
+    const token = req.headers["x-csrf-token"];
+    if (!token || token !== req.csrfToken) {
+        return res.status(403).json({ message: "Invalid CSRF token" });
+    }
+
+    next();
 }

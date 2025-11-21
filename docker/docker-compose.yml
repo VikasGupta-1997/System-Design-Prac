@@ -1,5 +1,7 @@
 # backend/docker/docker-compose.yml
-version: '3.9'
+
+#  optional, can remove safely
+# version: '3.9'  
 
 services:
   postgres:
@@ -18,12 +20,13 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - instagram_net
 
   mongo:
     image: mongo:6
     container_name: instagram_mongo
     healthcheck:
-      # use mongo client 'mongo' to ping; tool exists in the image
       test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok" ]
       interval: 5s
       timeout: 5s
@@ -32,6 +35,8 @@ services:
       - "27017:27017"
     volumes:
       - mongodata:/data/db
+    networks:
+      - instagram_net
 
   redis:
     image: redis:7
@@ -45,6 +50,8 @@ services:
       - "6379:6379"
     volumes:
       - redisdata:/data
+    networks:
+      - instagram_net
 
   backend:
     build:
@@ -62,19 +69,39 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # mount your source for hot reload and .env into the container:
     volumes:
-      - ../src:/app/src # mount source code
+      - ../src:/app/src
       - ../package.json:/app/package.json
       - ../package-lock.json:/app/package-lock.json
       - ../.env:/app/.env
       - ../.sequelizerc:/app/.sequelizerc
-      - /app/node_modules # keep container's node_modules (anonymous volume)
+      - /app/node_modules
     command: >
       sh -c "
         npm run dev
       "
     restart: on-failure
+    networks:
+      - instagram_net
+
+  # keycloak:
+  #   image: quay.io/keycloak/keycloak:26.0.0
+  #   container_name: instagram_keycloak
+  #   command: start-dev --http-port=4000
+  #   environment:
+  #     KC_DB: postgres
+  #     KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+  #     KC_DB_USERNAME: devuser
+  #     KC_DB_PASSWORD: devpass
+  #     KC_BOOTSTRAP_ADMIN_USERNAME: admin@example.com
+  #     KC_BOOTSTRAP_ADMIN_PASSWORD: admin123
+  #   ports:
+  #     - "4000:4000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - instagram_net
 
   pgadmin:
     image: dpage/pgadmin4
@@ -87,8 +114,14 @@ services:
       - "5050:80"
     depends_on:
       - postgres
+    networks:
+      - instagram_net
 
 volumes:
   pgdata:
   mongodata:
   redisdata:
+
+networks:
+  instagram_net:
+    driver: bridge

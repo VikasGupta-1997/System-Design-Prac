@@ -6,6 +6,7 @@ import { redisClient } from '../../db/redis'; // for Redis session storage
 import { Op } from 'sequelize'; // for database operations
 import { createSession } from '../../security/session';
 import { Response } from 'express'
+import crypto from "crypto";
 
 const ACCESS_TOKEN_TTL = 60 * 60 * 24 * 7; // 7 days in seconds
 
@@ -48,6 +49,26 @@ export const loginUser = async (email: string, password: string, res: Response) 
 
     // return { token };
 };
+
+export async function mobileLoginUser(email: string, password: string) {
+  const user = await User.findOne({ where: { email } });
+  if (!user) throw new Error("Invalid credentials");
+
+  const verify = await argon2.verify(user.password_hash, password);
+  if (!verify) throw new Error("Invalid credentials");
+
+  const accessToken = jwt.sign(
+      { userId: user.id },
+      config.jwtSecret,
+      { expiresIn: "15m" }
+  );
+
+  // create refresh token
+  const refreshToken = crypto.randomBytes(40).toString("hex");
+  await redisClient.set(`mobile_refresh:${refreshToken}`, JSON.stringify({ userId: user.id }), "EX", 2592000);
+
+  return { accessToken, refreshToken };
+}
 
 
 export const verifyToken = async (token: string) => {
